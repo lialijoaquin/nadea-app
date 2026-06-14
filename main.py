@@ -3,7 +3,7 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivy.lang import Builder
 from kivy.clock import Clock
 from kivy.utils import platform
-from plyer import gps
+from kivy.logger import Logger
 import random
 import time
 
@@ -72,7 +72,6 @@ MDBoxLayout:
                     icon: "play"
                     md_bg_color: app.theme_cls.primary_color
                     pos_hint: {"center_x": .5}
-                    user_font_size: "32sp"
                     on_release: app.toggle_monitoring()
                 Widget:
                     size_hint_y: 0.2
@@ -152,29 +151,43 @@ MDBoxLayout:
                 Widget:
 '''
 
+
 class NadeaApp(MDApp):
-    my_lat, my_lon = None, None
+    my_lat = None
+    my_lon = None
 
     def build(self):
+        Logger.info("Nadea: Iniciando build()")
         self.theme_cls.primary_palette = "Teal"
         self.is_monitoring = False
         self.simulation_event = None
         self.sms_cooldown = 0
         self.historial_alertas = []
-        return Builder.load_string(KV)
+        try:
+            root = Builder.load_string(KV)
+            Logger.info("Nadea: KV cargado OK")
+            return root
+        except Exception as e:
+            Logger.error(f"Nadea: ERROR cargando KV: {e}")
+            raise
 
     def cambiar_tema(self, checkbox, value):
         self.theme_cls.theme_style = "Dark" if value else "Light"
 
     def on_start(self):
+        Logger.info("Nadea: on_start ejecutado")
         if platform == 'android':
-            from android.permissions import request_permissions, Permission
-            request_permissions([
-                Permission.SEND_SMS,
-                Permission.READ_SMS,
-                Permission.ACCESS_FINE_LOCATION,
-                Permission.ACCESS_COARSE_LOCATION
-            ])
+            try:
+                from android.permissions import request_permissions, Permission
+                request_permissions([
+                    Permission.SEND_SMS,
+                    Permission.READ_SMS,
+                    Permission.ACCESS_FINE_LOCATION,
+                    Permission.ACCESS_COARSE_LOCATION
+                ])
+                Logger.info("Nadea: Permisos solicitados")
+            except Exception as e:
+                Logger.error(f"Nadea: Error pidiendo permisos: {e}")
 
     def toggle_monitoring(self):
         if not self.is_monitoring:
@@ -197,17 +210,20 @@ class NadeaApp(MDApp):
 
     def start_gps(self):
         try:
+            from plyer import gps
             gps.configure(on_location=self.on_location_update)
             gps.start(minTime=1000, minDistance=0)
             self.root.ids.gps_status.text = "Buscando satelites..."
-        except:
+        except Exception as e:
+            Logger.error(f"Nadea: GPS error: {e}")
             self.root.ids.gps_status.text = "GPS no disponible"
 
     def stop_gps(self):
         try:
+            from plyer import gps
             gps.stop()
-        except:
-            pass
+        except Exception as e:
+            Logger.error(f"Nadea: stop_gps error: {e}")
 
     def on_location_update(self, **kwargs):
         self.my_lat = kwargs.get('lat')
@@ -263,11 +279,13 @@ class NadeaApp(MDApp):
                     sms_manager.sendTextMessage(numero, None, mensaje, None, None)
                     enviados += 1
                 self.root.ids.status_label.text = f"SMS a {enviados} contactos"
-            except:
+            except Exception as e:
+                Logger.error(f"Nadea: SMS error: {e}")
                 self.root.ids.status_label.text = "Error al enviar"
         else:
             print(f"--- SIMULANDO ENVIO A: {numeros} ---\nMensaje: {mensaje}")
             self.root.ids.status_label.text = f"Simulado a {len(numeros)} nums"
+
 
 if __name__ == "__main__":
     NadeaApp().run()
