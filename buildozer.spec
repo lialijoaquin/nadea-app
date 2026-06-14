@@ -6,7 +6,7 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,atlas
 version = 7.0
 
-requirements = python3,kivy==2.3.0,kivymd==1.2.0,plyer,cython==3.0.11,pillow,pyjnius
+requirements = python3,kivy==2.3.0,kivymd==1.2.0,plyer,cython==3.0.11,pillow,pyjnius==1.5.0
 
 orientation = portrait
 fullscreen = 0
